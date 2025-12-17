@@ -1,66 +1,87 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState, useEffect } from 'react';
 
 export default function Home() {
+  const [notes, setNotes] = useState<string[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  const fetchNotes = async () => {
+    try {
+      const res = await fetch('/api/notes');
+      const data = await res.json();
+      if (data.notes) {
+        setNotes(data.notes);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notes', error);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!input.trim()) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: input }),
+      });
+
+      if (res.ok) {
+        setInput('');
+        fetchNotes(); // Refresh list
+      }
+    } catch (error) {
+      console.error('Failed to save note', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="container">
+      <h1>Antigravity Notes</h1>
+
+      <div className="input-area">
+        <textarea
+          placeholder="Write your thought here..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={loading}
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !input.trim()}
+        >
+          {loading ? 'Saving...' : 'Add Note'}
+        </button>
+      </div>
+
+      <div className="notes-grid">
+        {fetching ? (
+          <p style={{ textAlign: 'center', gridColumn: '1/-1', opacity: 0.7 }}>Loading thoughts...</p>
+        ) : notes.length === 0 ? (
+          <div style={{ textAlign: 'center', gridColumn: '1/-1', opacity: 0.5 }}>
+            <p>No notes yet. Start writing!</p>
+          </div>
+        ) : (
+          notes.map((note, index) => (
+            <div key={index} className="note-card" style={{ animationDelay: `${index * 0.05}s` }}>
+              <div className="note-content">{note}</div>
+            </div>
+          ))
+        )}
+      </div>
+    </main>
   );
 }
