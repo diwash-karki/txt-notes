@@ -48,6 +48,24 @@ export default function Home() {
     }
   };
 
+  const handleDelete = async (index: number) => {
+    if (confirm('Are you sure you want to delete this note?')) {
+      try {
+        const res = await fetch('/api/notes', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ index }),
+        });
+
+        if (res.ok) {
+          fetchNotes();
+        }
+      } catch (error) {
+        console.error('Failed to delete note', error);
+      }
+    }
+  };
+
   return (
     <main className="container">
       <h1>Antigravity Notes</h1>
@@ -77,6 +95,13 @@ export default function Home() {
         ) : (
           notes.map((note, index) => (
             <div key={index} className="note-card" style={{ animationDelay: `${index * 0.05}s` }}>
+              <button
+                className="delete-btn"
+                onClick={() => handleDelete(index)}
+                aria-label="Delete note"
+              >
+                ×
+              </button>
               <div className="note-content">{note}</div>
             </div>
           ))
